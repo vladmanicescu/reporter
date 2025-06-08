@@ -6,6 +6,10 @@ import unittest
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import json
+import logging
+logging.basicConfig()
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 class connector(ABC):
     """Abstract class used to implement different connectors"""
@@ -47,7 +51,31 @@ class ElasticConnector(connector):
                     request_timeout=600,
                     body=payload
         )
-        print(self.data)
+        print(self.data['hits']['hits'])
+
+class QueryConstructor(ABC):
+    @abstractmethod
+    def construct_query(self) -> dict:
+        pass
+
+class ElasticQueryConstructor(QueryConstructor):
+    """Class that constructs the queries based on the paths and files specified in the config"""
+    def __init__(self, base_path: str, query_files: list):
+        """
+        Constructor of the QueryConstructor class.
+        :param base_path[str]: base path for the files that contain the queries.
+        :param query_files[str]: query files names
+        """
+        self.base_path = base_path
+        self.query_files = query_files
+
+    def construct_query(self):
+        query_dict: dict = {}
+        for item in self.query_files:
+            file_name = item + ".json"
+            file_path = os.path.join(self.base_path, file_name)
+            query_dict[item] = file_path
+        return query_dict
 
 
 def main() -> None:
@@ -55,9 +83,16 @@ def main() -> None:
     configObject: configreader = configreader()
     configObject.generateConfigObject()
     configuration: dict = configObject.configObject
-    connector = ElasticConnector(configuration)
-    print(connector.__dict__)
-    connector.get_data(start_date="", end_date="", query_file="./queries/match_all.json")
+    elastic_query_base_path: str = configuration["query_config"]["base_query_path"]
+    elastic_queries: list = configuration["query_config"]["query_list"]
+    elastic_query_dict = ElasticQueryConstructor(elastic_query_base_path, elastic_queries).construct_query()
+    elastic_connector = ElasticConnector(configuration)
+    for item in elastic_query_dict.items():
+        query_name = item[0]
+        query_path = item[1]
+        log_message = f"Running query for {query_name}. Using file in {query_path}"
+        logger.info(log_message)
+        elastic_connector.get_data(start_date="", end_date="", query_file=query_path)
 
 if __name__ == '__main__':
     main()

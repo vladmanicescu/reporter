@@ -10,3 +10,8 @@ elastic_client_config:
   fileCounter: 0
 query_config:
   index: 'voice'
+  base_query_path: './queries'
+  query_list:
+    - match_all
+
+
