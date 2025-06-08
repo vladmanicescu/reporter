@@ -1,0 +1,12 @@
+elastic_client_config:
+  elastic_protocol: https
+  elastichost: '34.201.210.202'
+  elasticPrefix: ''
+  elasticport: '9200'
+  elasticUser: 'elastic'
+  elasticIndex: 'voice'
+  actions: []
+  fileRecordCount: 160000
+  fileCounter: 0
+query_config:
+  index: 'voice'
