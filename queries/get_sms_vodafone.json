@@ -1,0 +1,16 @@
+{
+  "query": {
+    "wildcard": {
+     "ingress_call_info_zone_name": "Vodafone*"
+    }
+  },
+  "fields": [
+    "ingress_call_info_zone_name",
+    "ingress_call_info_inviting_ts",
+    {
+      "field": "@timestamp",
+      "format": "epoch_millis"
+    }
+  ],
+  "_source": false
+}

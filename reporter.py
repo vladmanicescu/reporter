@@ -35,7 +35,7 @@ class ElasticConnector(connector):
         config_dict['elastic_client_config']['elasticPrefix'])
         self.elasticclient = Elasticsearch([self.elasticURL],verify_certs=False)
 
-    def get_data(self, start_date: str, end_date: str, query_file: str) -> None:
+    def get_data(self, start_date: str, end_date: str, query_file: str) -> list:
         """
         Method that gets the data from elasticsearch
         start_date:[str] start date of the query
@@ -51,7 +51,7 @@ class ElasticConnector(connector):
                     request_timeout=600,
                     body=payload
         )
-        print(self.data['hits']['hits'])
+        return self.data['hits']['hits']
 
 class QueryConstructor(ABC):
     @abstractmethod
@@ -92,7 +92,11 @@ def main() -> None:
         query_path = item[1]
         log_message = f"Running query for {query_name}. Using file in {query_path}"
         logger.info(log_message)
-        elastic_connector.get_data(start_date="", end_date="", query_file=query_path)
+        sms_data = elastic_connector.get_data(start_date="", end_date="", query_file=query_path)
+        log_message = f"Retrieved data for {query_name}. Start processing..."
+        logger.info(log_message)
+        for record in sms_data:
+            print(record["fields"])
 
 if __name__ == '__main__':
     main()
