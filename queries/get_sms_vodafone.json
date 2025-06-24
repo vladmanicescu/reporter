@@ -1,7 +1,15 @@
 {
   "query": {
-    "wildcard": {
-     "ingress_call_info_zone_name": "Vodafone*"
+    "bool":{
+       "must": [
+          {"wildcard":
+             {"ingress_call_info_zone_name": "Vodafone*"}
+          },
+         {"range":{"ingress_call_info_inviting_ts":{
+          "gte": "20250601000000000",
+          "lt": "20250701000000000"
+         }}}
+      ]
     }
   },
   "fields": [

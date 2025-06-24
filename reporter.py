@@ -4,6 +4,7 @@ from abc import ABC,  abstractmethod
 import os
 import unittest
 import urllib3
+from datetime import datetime
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import json
 import logging
@@ -14,7 +15,7 @@ logger.setLevel(logging.INFO)
 class connector(ABC):
     """Abstract class used to implement different connectors"""
     @abstractmethod
-    def get_data(self, start_date: str, end_date: str, query_file: str) -> None:
+    def get_data_prev_month(self, start_date: str, end_date: str, query_file: str) -> None:
         pass
 
 class ElasticConnector(connector):
@@ -35,7 +36,7 @@ class ElasticConnector(connector):
         config_dict['elastic_client_config']['elasticPrefix'])
         self.elasticclient = Elasticsearch([self.elasticURL],verify_certs=False)
 
-    def get_data(self, start_date: str, end_date: str, query_file: str) -> list:
+    def get_data_prev_month(self, start_date: str, end_date: str, query_file: str) -> list:
         """
         Method that gets the data from elasticsearch
         start_date:[str] start date of the query
@@ -46,6 +47,9 @@ class ElasticConnector(connector):
         """
         with open(query_file) as f:
             payload = json.load(f)
+            # TO DO override the values in the query after the data is imported with correct timestamp
+        previousMonth: str = str(int(datetime.now().strftime("%Y%m")) - 1) + "01000000"
+        actualMonth: str = datetime.now().strftime("%Y%m") + "01000000"
         self.data = self.elasticclient.search(
                     index=self.index,
                     request_timeout=600,
@@ -92,7 +96,7 @@ def main() -> None:
         query_path = item[1]
         log_message = f"Running query for {query_name}. Using file in {query_path}"
         logger.info(log_message)
-        sms_data = elastic_connector.get_data(start_date="", end_date="", query_file=query_path)
+        sms_data = elastic_connector.get_data_prev_month(start_date="", end_date="", query_file=query_path)
         log_message = f"Retrieved data for {query_name}. Start processing..."
         logger.info(log_message)
         for record in sms_data:
