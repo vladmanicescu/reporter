@@ -11,6 +11,7 @@ import logging
 logging.basicConfig()
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+from time_eval import TimeEval as time_eval
 
 class connector(ABC):
     """Abstract class used to implement different connectors"""
@@ -81,6 +82,72 @@ class ElasticQueryConstructor(QueryConstructor):
             query_dict[item] = file_path
         return query_dict
 
+class DataTransform:
+    """
+    Class that Transforms the data for the final calculation
+    """
+    def __init__(self, data: list[dict]) -> None:
+        """
+        Constructor of the data processor.
+        :param data: List of dictionaries representing records
+        """
+        self.data: list = data
+        self.uk_geo_day: list = []
+        self.uk_nw_day: list = []
+        self.mobile_day: list = []
+        self.uk_geo_eve: list = []
+        self.uk_nw_eve: list = []
+        self.mobile_eve: list = []
+        self.uk_geo_weekend: list = []
+        self.uk_nw_weekend: list = []
+        self.mobile_weekend: list = []
+        self.weekend_total: list = []
+        self.business_total: list = []
+        self.non_business_week_total = []
+
+    @staticmethod
+    def __check_uk_geo(prefix: str) -> bool:
+        """
+        :param prefix: -> str -> Prefix to be checked
+        :return: -> bool True if prefix belongs to the uk_geo operator, false if it doesn't
+        """
+        return prefix[:3] in ["441", "442"]
+
+    @staticmethod
+    def __check_uk_nw(prefix: str) -> bool:
+        """
+        :param prefix: -> str -> Prefix to be checked
+        :return: -> bool True if prefix belongs to the uk_nw operator, false if it doesn't
+        """
+        return prefix[:2] == "441"
+
+    @staticmethod
+    def __check_uk_mobile(prefix: str) -> bool:
+        """
+        :param prefix: -> str -> Prefix to be checked
+        :return: -> bool True if prefix is mobile, false if it isn't
+        """
+        return prefix != "447606" and prefix[:2] == "447"
+
+    def _split_data_by_timestamp(self) -> None:
+        """
+        Internal method that splits data based on call moment and ingress call info party
+        :return: None
+        """
+        for record in self.data:
+            _ingress_call_info_inviting_ts  =  str(record['fields']['ingress_call_info_inviting_ts'][0])
+            _ingress_call_info_called_party = str(record['fields']["ingress_call_info_called_party"][0])
+            _parsed_date = datetime.strptime(_ingress_call_info_inviting_ts, "%Y%m%d%H%M%f")
+            _prefix = _ingress_call_info_called_party[0:6]
+            if time_eval(_parsed_date).is_weekend():
+                self.weekend_total.append(record['fields'])
+            elif time_eval(_parsed_date).is_business():
+                self.business_total.append(record["fields"])
+            else:
+                self.non_business_week_total.append(record["fields"])
+        print("This is weekend",self.weekend_total)
+        print("This is business",self.business_total)
+        print("This is non business",self.non_business_week_total)
 
 def main() -> None:
     """Main function calling all other functions"""
@@ -96,11 +163,11 @@ def main() -> None:
         query_path = item[1]
         log_message = f"Running query for {query_name}. Using file in {query_path}"
         logger.info(log_message)
-        sms_data = elastic_connector.get_data_prev_month(start_date="", end_date="", query_file=query_path)
+        voice_data = elastic_connector.get_data_prev_month(start_date="", end_date="", query_file=query_path)
         log_message = f"Retrieved data for {query_name}. Start processing..."
         logger.info(log_message)
-        for record in sms_data:
-            print(record["fields"])
+        DataTransform(voice_data)._split_data_by_timestamp()
+
 
 if __name__ == '__main__':
     main()

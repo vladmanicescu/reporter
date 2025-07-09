@@ -1,6 +1,6 @@
 elastic_client_config:
   elastic_protocol: https
-  elastichost: '44.193.76.28'
+  elastichost: '18.209.240.217'
   elasticPrefix: ''
   elasticport: '9200'
   elasticUser: 'elastic'
