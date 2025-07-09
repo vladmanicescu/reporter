@@ -103,7 +103,7 @@ class DataTransform:
         self.mobile_weekend: list = []
         self.weekend_total: list = []
         self.business_total: list = []
-        self.non_business_week_total = []
+        self.non_business_week_total: list = []
 
     @staticmethod
     def __check_uk_geo(prefix: str) -> bool:
@@ -119,7 +119,7 @@ class DataTransform:
         :param prefix: -> str -> Prefix to be checked
         :return: -> bool True if prefix belongs to the uk_nw operator, false if it doesn't
         """
-        return prefix[:2] == "441"
+        return prefix[:2] == "443"
 
     @staticmethod
     def __check_uk_mobile(prefix: str) -> bool:
@@ -127,7 +127,7 @@ class DataTransform:
         :param prefix: -> str -> Prefix to be checked
         :return: -> bool True if prefix is mobile, false if it isn't
         """
-        return prefix != "447606" and prefix[:2] == "447"
+        return (prefix != "447606" and prefix[:2] == "447")
 
     def _split_data_by_timestamp(self) -> None:
         """
@@ -136,9 +136,7 @@ class DataTransform:
         """
         for record in self.data:
             _ingress_call_info_inviting_ts  =  str(record['fields']['ingress_call_info_inviting_ts'][0])
-            _ingress_call_info_called_party = str(record['fields']["ingress_call_info_called_party"][0])
             _parsed_date = datetime.strptime(_ingress_call_info_inviting_ts, "%Y%m%d%H%M%f")
-            _prefix = _ingress_call_info_called_party[0:6]
             if time_eval(_parsed_date).is_weekend():
                 self.weekend_total.append(record['fields'])
             elif time_eval(_parsed_date).is_business():
@@ -148,6 +146,53 @@ class DataTransform:
         print("This is weekend",self.weekend_total)
         print("This is business",self.business_total)
         print("This is non business",self.non_business_week_total)
+
+    def split_data_by_operator(self) -> None:
+        """
+        Method that splits  data by operator
+        :return: -> None
+        """
+        self._split_data_by_timestamp()
+        for record in self.weekend_total:
+            _ingress_call_info_called_party = str(record["ingress_call_info_called_party"][0])
+            _prefix = _ingress_call_info_called_party[0:6]
+            print(_prefix)
+            if self.__check_uk_nw(_prefix):
+                self.uk_nw_weekend.append(record)
+            elif self.__check_uk_geo(_prefix):
+                self.uk_geo_weekend.append(record)
+            elif self.__check_uk_mobile(_prefix):
+                self.mobile_weekend.append(record)
+        for record in self.business_total:
+
+            _ingress_call_info_called_party = str(record["ingress_call_info_called_party"][0])
+            _prefix = _ingress_call_info_called_party[0:6]
+            print(_prefix)
+            if self.__check_uk_nw(_prefix):
+                self.uk_nw_day.append(record)
+            elif self.__check_uk_geo(_prefix):
+                self.uk_geo_day.append(record)
+            elif self.__check_uk_mobile(_prefix):
+                self.mobile_day.append(record)
+        for record in self.non_business_week_total:
+            _ingress_call_info_called_party = str(record["ingress_call_info_called_party"][0])
+            _prefix = _ingress_call_info_called_party[0:6]
+            if self.__check_uk_nw(_prefix):
+                self.uk_nw_eve.append(record)
+            elif self.__check_uk_geo(_prefix):
+                self.uk_geo_eve.append(record)
+            elif self.__check_uk_mobile(_prefix):
+                self.mobile_eve.append(record)
+        print(self.mobile_eve)
+        print(self.uk_geo_eve)
+        print(self.uk_nw_eve)
+        print(self.mobile_day)
+        print(self.uk_nw_day)
+        print(self.uk_geo_day)
+        print(self.mobile_weekend)
+        print(self.uk_geo_weekend)
+        print(self.uk_nw_weekend)
+
 
 def main() -> None:
     """Main function calling all other functions"""
@@ -166,7 +211,7 @@ def main() -> None:
         voice_data = elastic_connector.get_data_prev_month(start_date="", end_date="", query_file=query_path)
         log_message = f"Retrieved data for {query_name}. Start processing..."
         logger.info(log_message)
-        DataTransform(voice_data)._split_data_by_timestamp()
+        DataTransform(voice_data).split_data_by_operator()
 
 
 if __name__ == '__main__':
