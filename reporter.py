@@ -127,7 +127,7 @@ class DataTransform:
         :param prefix: -> str -> Prefix to be checked
         :return: -> bool True if prefix is mobile, false if it isn't
         """
-        return (prefix != "447606" and prefix[:2] == "447")
+        return prefix != "447606" and prefix[:3] == "447"
 
     def _split_data_by_timestamp(self) -> None:
         """
